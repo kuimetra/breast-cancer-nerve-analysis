@@ -1,0 +1,67 @@
+```{r}
+library(survival)
+library(survminer)
+library(patchwork)
+library(purrr)
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=3, dpi=300}
+set.seed(123)
+
+# Simulate data
+n <- 200
+time <- sort(sample(0:50, size = n, replace = TRUE))  # Discrete time from 0 to 50
+status <- rbinom(n, 1, 0.75)  # Event indicator
+
+# Covariate 1: Age at diagnosis (PH holds)
+x1 <- sample(20:80, size = n, replace = TRUE)
+
+# Covariate 2: Age at diagnosis (PH violated)
+x2 <- 30 + 0.25 * time + rnorm(n, mean = 0, sd = 3)
+
+cox_model_ph <- coxph(Surv(time, status) ~ x1)
+cox_model_nonph <- coxph(Surv(time, status) ~ x2)
+
+zph_ph <- cox.zph(cox_model_ph)
+zph_nonph <- cox.zph(cox_model_nonph)
+
+plot_ph_list <- ggcoxzph(zph_ph, 
+                         point.col = "#BBB6DF", 
+                         point.size = 1, 
+                         point.alpha = 0.7,
+                         ggtheme = theme_classic(), 
+                         font.family = "CMU Serif")
+
+plot_nonph_list <- ggcoxzph(zph_nonph, 
+                            point.col = "#BBB6DF", 
+                            point.size = 1, 
+                            point.alpha = 0.7,
+                            ggtheme = theme_classic(), 
+                            font.family = "CMU Serif")
+
+plot_ph <- plot_ph_list[[1]] + 
+  ggtitle("Proportional Hazards (p=0.399)") +
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  ylab("Beta(t) for age_at_diagnosis") +
+  theme_classic(base_family = "CMU Serif") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot_nonph <- plot_nonph_list[[1]] +
+  ggtitle("PH Violation (p=0.0011)") +
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  ylab("Beta(t) for age_at_diagnosis") +
+  theme_classic(base_family = "CMU Serif") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+final_plot <- plot_ph + plot_nonph +
+  plot_layout(ncol = 2) +
+  plot_annotation(title = "Schoenfeld Residuals: PH vs Violation",
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 16, family = "CMU Serif")))
+
+print(final_plot)
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=3, dpi=300}
+print(zph_ph)
+print(zph_nonph)
+```

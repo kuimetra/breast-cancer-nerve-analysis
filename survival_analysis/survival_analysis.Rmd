@@ -1,0 +1,415 @@
+```{r}
+library(survival)
+library(survminer)
+library(patchwork)
+library(purrr)
+```
+event = 1 if patient died from breast cancer
+event = 0 if patient is alive or died from another cause (censored)
+
+```{r}
+train_set_compartments$event <- ifelse(train_set_compartments$cause_of_death == 2, 1, 0)
+test_set_compartments$event <- ifelse(test_set_compartments$cause_of_death == 2, 1, 0)
+
+loose_train_set_cells$event <- ifelse(loose_train_set_cells$cause_of_death == 2, 1, 0)
+loose_test_set_cells$event <- ifelse(loose_test_set_cells$cause_of_death == 2, 1, 0)
+
+pred_train_set_cells$event <- ifelse(pred_train_set_cells$cause_of_death == 2, 1, 0)
+pred_test_set_cells$event <- ifelse(pred_test_set_cells$cause_of_death == 2, 1, 0)
+```
+
+Model 1: nerve_count
+
+```{r}
+cox_model_1 <- coxph(Surv(follow_up_months, event) ~ nerve_count,  data = train_set_compartments,  ties = "exact")
+summary(cox_model_1)
+```
+
+Model 2: n_stroma + n_tumor
+
+```{r}
+cox_model_2 <- coxph(Surv(follow_up_months, event) ~ n_stroma + n_tumor,  data = train_set_compartments,  ties = "exact")
+summary(cox_model_2)
+```
+
+Model 3: nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+cox_model_3 <- coxph(Surv(follow_up_months, event) ~ nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade, data = train_set_compartments,  ties = "exact")
+summary(cox_model_3)
+```
+
+Model 4: n_stroma + n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+cox_model_4 <- coxph(Surv(follow_up_months, event) ~ n_stroma + n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade, data = train_set_compartments,  ties = "exact")
+summary(cox_model_4)
+```
+
+Model 5: pred_nerve_count
+
+```{r}
+cox_model_5 <- coxph(Surv(follow_up_months, event) ~ pred_nerve_count, data = train_set_compartments,  ties = "exact")
+summary(cox_model_5)
+```
+
+Model 6: pred_n_stroma + pred_n_tumor
+
+```{r}
+cox_model_6 <- coxph(Surv(follow_up_months, event) ~ pred_n_stroma + pred_n_tumor, data = train_set_compartments,  ties = "exact")
+summary(cox_model_6)
+```
+
+Model 7: pred_nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+cox_model_7 <- coxph(Surv(follow_up_months, event) ~ pred_nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade, data = train_set_compartments,  ties = "exact")
+summary(cox_model_7)
+```
+
+Model 8: pred_n_stroma + pred_n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+cox_model_8 <- coxph(Surv(follow_up_months, event) ~ pred_n_stroma + pred_n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade, data = train_set_compartments,  ties = "exact")
+summary(cox_model_8)
+```
+
+Model 9: age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+cox_model_9 <- coxph(Surv(follow_up_months, event) ~ age_of_diagnosis + tumor_diameter + histologic_grade, data = train_set_compartments,  ties = "exact")
+summary(cox_model_9)
+```
+
+Model 10: cell types using loose ground truth masks
+
+```{r}
+cox_model_10 <- coxph(
+  Surv(follow_up_months, event) ~ 
+    B_cells + Cancer_cell + Endothelial + Immune_other + `Macrophages_CD163+` + `Macrophages_CD163-` + Stromal + T_cytotoxic + T_helper + T_regulatory,
+  data = loose_train_set_cells,
+  ties = "exact"
+)
+summary(cox_model_10)
+```
+
+Model 11: cell types using predicted masks
+
+```{r}
+cox_model_11 <- coxph(
+  Surv(follow_up_months, event) ~ 
+    B_cells + Cancer_cell + Endothelial + Immune_other + `Macrophages_CD163+` + `Macrophages_CD163-` + Stromal + T_cytotoxic + T_helper + T_regulatory,
+  data = pred_train_set_cells,
+  ties = "exact"
+)
+summary(cox_model_11)
+```
+
+Model 1: nerve_count
+
+```{r}
+rs_1 <- predict(cox_model_1, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_1, data = test_set_compartments)
+```
+
+Model 2: n_stroma + n_tumor
+
+```{r}
+rs_2 <- predict(cox_model_2, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_2, data = test_set_compartments)
+```
+
+Model 3: nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+rs_3 <- predict(cox_model_3, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_3, data = test_set_compartments)
+```
+
+Model 4: n_stroma + n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+rs_4 <- predict(cox_model_4, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_4, data = test_set_compartments)
+```
+
+Model 5: pred_nerve_count
+
+```{r}
+rs_5 <- predict(cox_model_5, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_5, data = test_set_compartments)
+```
+
+Model 6: pred_n_stroma + pred_n_tumor
+
+```{r}
+rs_6 <- predict(cox_model_6, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_6, data = test_set_compartments)
+```
+
+Model 7: pred_nerve_count + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+rs_7 <- predict(cox_model_7, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_7, data = test_set_compartments)
+```
+
+Model 8: pred_n_stroma + pred_n_tumor + age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+rs_8 <- predict(cox_model_8, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_8, data = test_set_compartments)
+```
+
+Model 9: age_of_diagnosis + tumor_diameter + histologic_grade
+
+```{r}
+rs_9 <- predict(cox_model_9, newdata = test_set_compartments, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_9, data = test_set_compartments)
+```
+
+Model 10: cell types using loose ground truth masks
+
+```{r}
+rs_10 <- predict(cox_model_10, newdata = loose_test_set_cells, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_10, data = loose_test_set_cells)
+```
+
+Model 11: cell types using predicted masks
+
+```{r}
+rs_11 <- predict(cox_model_11, newdata = pred_test_set_cells, type = "risk")
+concordance(Surv(follow_up_months, event) ~ rs_11, data = pred_test_set_cells)
+```
+
+```{r schoenfeld-plot, fig.width=4.5, fig.height=3, dpi=300}
+zph_1 <- cox.zph(cox_model_1)
+
+zph_1_plot <- ggcoxzph(zph_1,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_1_plot <- map(zph_1_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_1_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=9, fig.height=3.5, dpi=300}
+zph_2 <- cox.zph(cox_model_2)
+
+zph_2_plot <- ggcoxzph(zph_2,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       gtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_2_plot <- map(zph_2_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_2_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=5.5, dpi=300}
+zph_3 <- cox.zph(cox_model_3)
+
+zph_3_plot <- ggcoxzph(zph_3,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_3_plot <- map(zph_3_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_3_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=7.5, dpi=300}
+zph_4 <- cox.zph(cox_model_4)
+zph_4_plot <- ggcoxzph(zph_4,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_4_plot <- map(zph_4_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+left_col_4 <- zph_4_plot[[1]] / zph_4_plot[[3]] / zph_4_plot[[5]]
+right_col_4 <- zph_4_plot[[2]] / zph_4_plot[[4]] / plot_spacer()
+
+(left_col_4 | right_col_4) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=4.5, fig.height=3, dpi=300}
+zph_5 <- cox.zph(cox_model_5)
+
+zph_5_plot <- ggcoxzph(zph_5,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_5_plot <- map(zph_5_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_5_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=3, dpi=300}
+zph_6 <- cox.zph(cox_model_6)
+
+zph_6_plot <- ggcoxzph(zph_6,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_6_plot <- map(zph_6_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_6_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=5.5, dpi=300}
+zph_7 <- cox.zph(cox_model_7)
+
+zph_7_plot <- ggcoxzph(zph_7,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_7_plot <- map(zph_7_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+wrap_plots(zph_7_plot) + 
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=7.5, dpi=300}
+zph_8 <- cox.zph(cox_model_8)
+zph_8_plot <- ggcoxzph(zph_8,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_8_plot <- map(zph_8_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+left_col_8 <- zph_8_plot[[1]] / zph_8_plot[[3]] / zph_8_plot[[5]]
+right_col_8 <- zph_8_plot[[2]] / zph_8_plot[[4]] / plot_spacer()
+
+(left_col_8 | right_col_8) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=5.5, dpi=300}
+zph_9 <- cox.zph(cox_model_9)
+zph_9_plot <- ggcoxzph(zph_9,
+                       point.col = "#BBB6DF",
+                       point.size = 1,
+                       point.alpha = 0.7,
+                       ggtheme = theme_classic(),
+                       font.family = "CMU Serif")
+
+zph_9_plot <- map(zph_9_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+left_col_9 <- zph_9_plot[[1]] / zph_9_plot[[3]]
+right_col_9 <- zph_9_plot[[2]] / plot_spacer()
+
+(left_col_9 | right_col_9) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=12.25, dpi=300}
+zph_10 <- cox.zph(cox_model_10)
+zph_10_plot <- ggcoxzph(zph_10,
+                        point.col = "#BBB6DF",
+                        point.size = 1,
+                        point.alpha = 0.7,
+                        ggtheme = theme_classic(),
+                        font.family = "CMU Serif")
+
+zph_10_plot <- map(zph_10_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+(zph_10_plot[[1]] | zph_10_plot[[2]]) /
+(zph_10_plot[[3]] | zph_10_plot[[4]]) /
+(zph_10_plot[[5]] | zph_10_plot[[6]]) /
+(zph_10_plot[[7]] | zph_10_plot[[8]]) /
+(zph_10_plot[[9]] | zph_10_plot[[10]]) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
+
+```{r schoenfeld-plot, fig.width=7.5, fig.height=12.25, dpi=300}
+zph_11 <- cox.zph(cox_model_11)
+zph_11_plot <- ggcoxzph(zph_11,
+                        point.col = "#BBB6DF",
+                        point.size = 1,
+                        point.alpha = 0.7,
+                        ggtheme = theme_classic(),
+                        font.family = "CMU Serif")
+
+zph_11_plot <- map(zph_11_plot, ~ .x + 
+  geom_hline(yintercept = 0, color = "#DB5461") +
+  xlab("Time (months)"))
+
+(zph_11_plot[[1]] | zph_11_plot[[2]]) /
+(zph_11_plot[[3]] | zph_11_plot[[4]]) /
+(zph_11_plot[[5]] | zph_11_plot[[6]]) /
+(zph_11_plot[[7]] | zph_11_plot[[8]]) /
+(zph_11_plot[[9]] | zph_11_plot[[10]]) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(family = "CMU Serif", hjust = 0.5, size = 16))
+  )
+```
